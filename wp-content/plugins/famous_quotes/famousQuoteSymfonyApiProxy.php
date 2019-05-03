@@ -115,9 +115,21 @@ class famousQuoteSymfonyApiProxy
 		return $response->is_error ? false : $this->json;
 	}
 
+	public function getQuote($id)
+	{
+		$response = $this->send_request('GET', '/quote/' . $id);
+		return $response->is_error ? false : $this->json;
+	}
+
 	public function addQuote($author, $text)
 	{
 		$response = $this->send_request('POST', '/quote', array('author' => $author, 'text' => $text));
+		return $response->is_error ? false : $this->json;
+	}
+
+	public function editQuote($id, $author, $text)
+	{
+		$response = $this->send_request('POST', '/quote/' . $id, array('author' => $author, 'text' => $text));
 		return $response->is_error ? false : $this->json;
 	}
 

@@ -11,6 +11,7 @@ add_action('admin_init', array('FamousQuoteEvent', 'initPlugin'));
 add_action('admin_menu', array('FamousQuoteEvent', 'addMenuLinks'));
 add_action('admin_post_new_key', 	array('FamousQuoteEvent', 'generateNewApiKey'));
 add_action('admin_post_add_quote', 	array('FamousQuoteEvent', 'addQuote'));
+add_action('admin_post_edit_quote', 	array('FamousQuoteEvent', 'editQuote'));
 add_action('admin_post_delete_quote', 	array('FamousQuoteEvent', 'deleteQuote'));
 add_action('wp_footer',	 	array('FamousQuoteEvent', 'showRandomQuote'));
 add_action('wp_enqueue_scripts', array('FamousQuoteEvent', 'register_plugin_styles'));
@@ -24,6 +25,7 @@ class FamousQuoteEvent
 		add_options_page('Famous Quotes', 'Famous Quotes', 'manage_options', 'quote_list', array('FamousQuoteEvent', 'renderQuoteList'));
 		add_options_page('Famous Quotes Settings', 'Famous Quotes Settings', 'manage_options', 'fmq-settings-page', array('FamousQuoteEvent', 'renderOptionsPage'));
 		add_submenu_page(null,'Add Quote', 'Add Quote', 'manage_options', 'add_quote', array('FamousQuoteEvent', 'renderAddQuoteAction'));
+		add_submenu_page(null,'View Quote', 'View Quote', 'manage_options', 'view_quote', array('FamousQuoteEvent', 'renderViewQuoteAction'));
 	}
 
 	public function addQuote()
@@ -32,6 +34,24 @@ class FamousQuoteEvent
 		$api = new famousQuoteSymfonyApiProxy($options['fmq_api_key']);
 		$data = $_POST;
 		$response = $api->addQuote($data['quote_author'], $data['quote_text']);
+
+		if ($response)
+		{
+			wp_redirect(admin_url('options-general.php?page=quote_list'));
+		}
+		else
+		{
+			print 'Something went wrong! (' . $api->error_message . ')';
+		}
+	}
+
+	public function editQuote()
+	{
+		$options = get_option('fmq_api_settings');
+		$api = new famousQuoteSymfonyApiProxy($options['fmq_api_key']);
+		$data = $_POST;
+
+		$response = $api->editQuote(intval($data['id']), $data['quote_author'], $data['quote_text']);
 
 		if ($response)
 		{
@@ -65,13 +85,19 @@ class FamousQuoteEvent
 	{
 		print '<form action="admin-post.php" method="post">
 			<input type="hidden" name="action" value="' . $data['mode'] . '_quote">
+			';
+		if ($data['id'])
+		{
+			print '<input type="hidden" name="id" value="' . $data['id'] .'">';
+		}
 
+		print '
 			Author:
 			<input type=text name="quote_author" value="' . htmlspecialchars($data['quote_author']) . '">
 			<br/>
 			
 			Quote:
-			<textarea name="quote_text">' . htmlspecialchars($data['quote_author']) . '</textarea>
+			<textarea name="quote_text">' . htmlspecialchars($data['quote_text']) . '</textarea>
 			';
                 submit_button();
 		print '</form>';
@@ -82,6 +108,32 @@ class FamousQuoteEvent
 	{
 		print "<h2>Add Quote</h2>";
 		self::renderQuoteForm(array('mode' => 'add'));
+	}
+
+	public function renderViewQuoteAction()
+	{
+		print "<h2>Edit Quote</h2>";
+
+		$id = intval($_GET['id']);
+
+		$options = get_option('fmq_api_settings');
+		$api = new famousQuoteSymfonyApiProxy($options['fmq_api_key']);
+
+		$response = $api->getQuote($id);
+		if ($response)
+		{
+			$data = array(
+				'mode' => 'edit',
+				'id' => $id,
+				'quote_author' => $response['data'][0]['name'],
+				'quote_text' => $response['data'][0]['text']
+			);
+			self::renderQuoteForm($data);
+		}
+		else
+		{
+			print "Something went wrong (quote has just been deleted?)";
+		}
 	}
 
 	public function renderQuoteList()
@@ -136,8 +188,9 @@ class FamousQuoteEvent
 							<td>' . $quote['name'] . '</td>
 							<td class="column-primary">' . $quote['text'] . '</td>
 							<td style="display:flex; justify-content:flex-end;">
-								<form action="admin-post.php" method="post">
-								<input type="hidden" name="action" value="edit_quote">
+
+								<form action="options-general.php" method="get">
+								<input type="hidden" name="page" value="view_quote">
 								<input type="hidden" name="id" value="' . $quote['id'] . '">
 								<input type="submit" value="Edit" class="button">
 								</form>
