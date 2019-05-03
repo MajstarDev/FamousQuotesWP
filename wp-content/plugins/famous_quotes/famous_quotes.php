@@ -22,6 +22,9 @@ require 'famousQuoteSymfonyApiProxy.php';
 
 class FamousQuoteEvent
 {
+	/*
+	* Menu links. Two starting with 'null' are not real menu links but rather plugin's CRUD pages
+	*/
 	public function addMenuLinks()
 	{
 		add_options_page('Famous Quotes', 'Famous Quotes', 'manage_options', 'quote_list', array('FamousQuoteEvent', 'renderQuoteList'));
@@ -30,6 +33,9 @@ class FamousQuoteEvent
 		add_submenu_page(null,'View Quote', 'View Quote', 'manage_options', 'view_quote', array('FamousQuoteEvent', 'renderViewQuoteAction'));
 	}
 
+	/*
+	* add quote action. Fire API request & redirect back to quote list
+	*/
 	public function addQuote()
 	{
 		$options = get_option('fmq_api_settings');
@@ -47,6 +53,9 @@ class FamousQuoteEvent
 		}
 	}
 
+	/*
+	* same as add quote action, pass to API & redirect back to quote list
+	*/
 	public function editQuote()
 	{
 		$options = get_option('fmq_api_settings');
@@ -65,6 +74,9 @@ class FamousQuoteEvent
 		}
 	}
 
+	/*
+	* fires when delete button clicked on one on quotes on the list
+	*/
 	public function deleteQuote()
 	{
 		$options = get_option('fmq_api_settings');
@@ -82,11 +94,14 @@ class FamousQuoteEvent
 		}
 	}
 
+	/*
+	* form to add/edit quote. Would be nice to redo as Twig/Smarty template (if we had a templating engine)
+	*/
 	private static function renderQuoteForm($data)
 	{
 		print '<form action="admin-post.php" method="post" id="quote_form">
-		<input type="hidden" name="action" value="' . $data['mode'] . '_quote">
-			';
+		<input type="hidden" name="action" value="' . $data['mode'] . '_quote">';
+
 		if ($data['id'])
 		{
 			print '<input type="hidden" name="id" value="' . $data['id'] .'">';
@@ -99,25 +114,32 @@ class FamousQuoteEvent
 				</tr>
 			<tr>
 					<th><label for="quote_author">Author:</label></th>
-					<td><input type=text name="quote_author" class="fmq" value="' . htmlspecialchars($data['quote_author']) . '"></td>
+					<td><input type=text name="quote_author" class="fmq" value="' . stripslashes($data['quote_author']) . '"></td>
 				</tr>
 				<tr>
 					<th>Quote:</th>
-					<td><textarea name="quote_text" class="fmq" rows="5" cols="30">' . htmlspecialchars($data['quote_text']) . '</textarea></td>
+					<td><textarea name="quote_text" class="fmq" rows="5" cols="30">' . stripslashes($data['quote_text']) . '</textarea></td>
 				</tr>
 			</table>
 			';
-        submit_button();
+
+		submit_button();
 		print '</form>';
 		
 	}
 
+	/*
+	* fires when user clicks button to add new quote and an empty form needs to appear
+	*/
 	public function renderAddQuoteAction()
 	{
 		print "<h2>Add Quote</h2>";
 		self::renderQuoteForm(array('mode' => 'add'));
 	}
 
+	/*
+	* user wants to edit quote from the list
+	*/
 	public function renderViewQuoteAction()
 	{
 		print "<h2>Edit Quote</h2>";
@@ -144,6 +166,9 @@ class FamousQuoteEvent
 		}
 	}
 
+	/*
+	* this is the main crud page - quote list
+	*/
 	public function renderQuoteList()
 	{
 		print '<h2>Famous Quotes</h2>';
@@ -193,8 +218,8 @@ class FamousQuoteEvent
 				{
 					print '
 						<tr>
-							<td>' . $quote['name'] . '</td>
-							<td class="column-primary">' . $quote['text'] . '</td>
+							<td>' . stripslashes($quote['name']) . '</td>
+							<td class="column-primary">' . stripslashes($quote['text']) . '</td>
 							<td style="display:flex; justify-content:flex-end;">
 
 								<form action="options-general.php" method="get">
@@ -227,6 +252,9 @@ class FamousQuoteEvent
 
 	}
 
+	/*
+	* set up settings via WP's Setting API
+	*/
 	public function initPlugin()
 	{
 		register_setting('fmqPlugin', 'fmq_api_settings');
@@ -247,6 +275,9 @@ class FamousQuoteEvent
 		);		
 	}
 
+	/*
+	* this is the only frontend call - shows random quote at the footer
+	*/
 	public function showRandomQuote()
 	{
 		$options = get_option('fmq_api_settings');
@@ -256,13 +287,16 @@ class FamousQuoteEvent
 		if ($response)
 		{
 			print '<div class="fmq-container">
-				<blockquote class="fmq" cite="' . $response['data'][0]['name'] . '">
-					' .  $response['data'][0]['text'] . '
+				<blockquote class="fmq" cite="' . stripslashes($response['data'][0]['name']) . '">
+					' .  nl2br(stripslashes($response['data'][0]['text'])) . '
 				<blockquote>
 			</div>';
 		}
 	}
 
+	/*
+	* settings page - enter or generate API key & save
+	*/
 	public function renderOptionsPage( )
 	{
 		print '<form action="options.php" method="post">
@@ -279,17 +313,26 @@ class FamousQuoteEvent
 		print '</form>';
 	}
 
+	/*
+	* TODO: not needed and should be combined with whatever it's invoked from
+	*/
 	public function renderOptionsSectionDescripton()
 	{
 		print __('If you have an API key, enter it here', 'wordpress');
 	}
 
+	/*
+	* same as above. Was from a demo I found when I started building this
+	*/
 	public function renderApiKeyInputField( )
 	{
 		$options = get_option('fmq_api_settings');
 		print '<input type="text" name="fmq_api_settings[fmq_api_key]" value="' . $options['fmq_api_key'] . '">';
 	}
 
+	/* 
+	* calls API's method to generate new API key
+	*/
 	public function generateNewApiKey()
 	{
 		$api = new famousQuoteSymfonyApiProxy();
@@ -303,18 +346,28 @@ class FamousQuoteEvent
 		wp_redirect(admin_url('/options-general.php?page=fmq-settings-page'));
 	}
 
+	/*
+	* load admin styles
+	*/
 	public function register_admin_styles()
 	{
 		wp_register_style('fmqPlugin', plugins_url('famous_quotes/assets/quotes_admin.css'));
 		wp_enqueue_style('fmqPlugin');
 	}
 
+	/*
+	* load admin js
+	*/
 	public function register_admin_scripts($hook)
 	{
 		if ($hook != 'settings_page_add_quote' && $hook != 'settings_page_view_quote')
 			return;
 		wp_enqueue_script('newscript', plugins_url('famous_quotes/assets/quotes_admin.js'), array( 'jquery'));
 	}
+
+	/*
+	* load frontend styles
+	*/
 	public function register_plugin_styles()
 	{
 		wp_register_style('fmqPlugin', plugins_url('famous_quotes/assets/quotes_public.css'));
