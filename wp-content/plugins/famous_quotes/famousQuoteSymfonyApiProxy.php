@@ -17,17 +17,6 @@ class famousQuoteSymfonyApiProxy
 
 	private function send_request($verb, $uri, $data = array())
 	{
-
-		if (count($data) > 0)
-		{
-			$post_data = '';
-			foreach ($data as $key => $val)
-			{
-				$post_data .= ($post_data != '' ? '&' : '');
-				$post_data .= ($key . '=' . urlencode($val));
-			}
-		}
-
 		$c = curl_init(self::API_URL . $uri);
 		curl_setopt($c, CURLOPT_VERBOSE, 0);
 
@@ -35,16 +24,28 @@ class famousQuoteSymfonyApiProxy
 		{
 			case 'GET':
 				break;
+
 			case 'POST':
 				curl_setopt($c, CURLOPT_POST, 1);
+				if (count($data) > 0)
+				{
+					$post_data = '';
+					foreach ($data as $key => $val)
+					{
+						$post_data .= ($post_data != '' ? '&' : '');
+						$post_data .= ($key . '=' . urlencode($val));
+					}
+				}
 				if ($post_data)
 				{
 					curl_setopt($c, CURLOPT_POSTFIELDS, $post_data);
 				}
 				break;
+
 			case 'DELETE':
 				curl_setopt($c, CURLOPT_CUSTOMREQUEST, 'DELETE');
 				break;
+
 			default:
 				throw new Exception('curl method not implemented');
 		}
@@ -76,7 +77,8 @@ class famousQuoteSymfonyApiProxy
 			return false;
 		}
 
-		try {
+		try
+		{
 			$result = json_decode($buffer, true);
 		}
 		catch (Exception $e) 
@@ -117,5 +119,14 @@ class famousQuoteSymfonyApiProxy
 	{
 		$response = $this->send_request('POST', '/quote', array('author' => $author, 'text' => $text));
 		return $response->is_error ? false : $this->json;
-	}	
+	}
+
+	public function deleteQuote($id)
+	{
+		$response = $this->send_request('DELETE', '/quote/' . $id);
+		return $response->is_error ? false : $this->json;
+	}
+
 }
+
+?>

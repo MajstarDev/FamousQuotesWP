@@ -9,9 +9,10 @@ Version: 1.0
 
 add_action('admin_init', array('FamousQuoteEvent', 'initPlugin'));
 add_action('admin_menu', array('FamousQuoteEvent', 'addMenuLinks'));
-add_action('wp_footer',	 array('FamousQuoteEvent', 'showRandomQuote'));
 add_action('admin_post_new_key', array('FamousQuoteEvent', 'generateNewApiKey'));
 add_action('admin_post_add_quote', array('FamousQuoteEvent', 'addQuote'));
+add_action('admin_post_delete_quote', array('FamousQuoteEvent', 'deleteQuote'));
+add_action('wp_footer',	 array('FamousQuoteEvent', 'showRandomQuote'));
 
 require 'famousQuoteSymfonyApiProxy.php';
 
@@ -41,6 +42,23 @@ class FamousQuoteEvent
 		}
 	}
 
+	public function deleteQuote()
+	{
+		$options = get_option('fmq_api_settings');
+		$api = new famousQuoteSymfonyApiProxy($options['fmq_api_key']);
+
+		$response = $api->deleteQuote(intval($_POST['id']));
+
+		if ($response)
+		{
+			wp_redirect(admin_url('options-general.php?page=quote_list'));
+		}
+		else
+		{
+			print 'Something went wrong! (' . $api->error_message . ')';
+		}
+
+	}
 
 	private static function renderQuoteForm($data)
 	{
@@ -92,12 +110,17 @@ class FamousQuoteEvent
 			else
 			{
 
-				print '<a href="options-general.php?page=add_quote">add quote</a>';
+				print '<form action="options-general.php" method="get">
+					<input type="hidden" name="page" value="add_quote">
+					';
+				submit_button('Add Quote');
+				print '</form>';
 
 				print '<table cellpadding="5" cellspacing="0" border="1">
 					<tr>
 						<td>Author</td>
 						<td>Quote</td>
+						<td>&nbsp;</td>
 					</tr>
 				';
 				foreach ($response['data'] as $quote)
@@ -105,6 +128,19 @@ class FamousQuoteEvent
 					print '<tr>
 							<td>' . $quote['name'] . '</td>
 							<td>' . $quote['text'] . '</td>
+							<td>
+								<form action="admin-post.php" method="post">
+								<input type="hidden" name="action" value="edit_quote">
+								<input type="hidden" name="id" value="' . $quote['id'] . '">
+								<input type="submit" value="Edit">
+								</form>
+
+								<form action="admin-post.php" method="post">
+								<input type="hidden" name="action" value="delete_quote">
+								<input type="hidden" name="id" value="' . $quote['id'] . '">
+								<input type="submit" value="Delete">
+								</form>
+							</td>
 						</tr>';
 				}
 				print '</table>';
@@ -178,3 +214,5 @@ class FamousQuoteEvent
 		wp_redirect(admin_url('/options-general.php?page=fmq-settings-page'));
 	}
 }
+
+?>
