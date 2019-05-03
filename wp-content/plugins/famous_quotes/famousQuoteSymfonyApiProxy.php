@@ -4,22 +4,29 @@ class famousQuoteSymfonyApiProxy
 {
 	const API_URL = 'http://pavel.bootcamp.architechlabs.com:8000';
 
+	private $api_key;
+
 	public $is_error;
 	public $error_message;
 	public $json;
 
-	private function send_request($verb, $uri, $headers = array(), $data = array())
+	function __construct($api_key = null)
 	{
-		/*
-			$post_data = "".
-				//form data
-				"x_first_name=".urlencode($post_form["cc_first_name"]).
-				"&x_last_name=".urlencode($post_form["cc_last_name"]).
-				"&x_card_num=".urlencode($post_form["cc_number"]).
-				"&x_card_code=".urlencode($post_form["cc_cvv2"]).
-				"&x_exp_date=".urlencode($post_form["cc_expiration_month"]."/".$post_form["cc_expiration_year"]). //"MM/YYYY" format used
-		*/
-		//curl_setopt($c, CURLOPT_HEADER, 0);
+		$this->api_key = $api_key;
+	}
+
+	private function send_request($verb, $uri, $data = array())
+	{
+
+		if (count($data) > 0)
+		{
+			$post_data = '';
+			foreach ($data as $key => $val)
+			{
+				$post_data .= ($post_data != '' ? '&' : '');
+				$post_data .= ($key . '=' . urlencode($val));
+			}
+		}
 
 		$c = curl_init(self::API_URL . $uri);
 		curl_setopt($c, CURLOPT_VERBOSE, 0);
@@ -30,7 +37,10 @@ class famousQuoteSymfonyApiProxy
 				break;
 			case 'POST':
 				curl_setopt($c, CURLOPT_POST, 1);
-				curl_setopt($c, CURLOPT_POSTFIELDS, $post_data);
+				if ($post_data)
+				{
+					curl_setopt($c, CURLOPT_POSTFIELDS, $post_data);
+				}
 				break;
 			case 'DELETE':
 				curl_setopt($c, CURLOPT_CUSTOMREQUEST, 'DELETE');
@@ -45,7 +55,13 @@ class famousQuoteSymfonyApiProxy
 
 		curl_setopt($c, CURLOPT_SSL_VERIFYPEER, 1);
 
+		if ($this->api_key)
+		{
+			curl_setopt($c, CURLOPT_HTTPHEADER, array('X-APIKEY: ' . $this->api_key));
+		}
+
 		$buffer = curl_exec($c);
+
 		if (curl_errno($c) > 0)
 		{
 			$this->is_error = true;
@@ -88,14 +104,18 @@ class famousQuoteSymfonyApiProxy
 	public function newApiKey()
 	{
 		$response = $this->send_request('GET', '/key');
-
-		if ($response->is_error)
-		{
-			return false;
-		}
-		else
-		{
-			return $this->json;
-		}
+		return $response->is_error ? false : $this->json;
 	}
+
+	public function getQuotes()
+	{
+		$response = $this->send_request('GET', '/quote');
+		return $response->is_error ? false : $this->json;
+	}
+
+	public function addQuote($author, $text)
+	{
+		$response = $this->send_request('POST', '/quote', array('author' => $author, 'text' => $text));
+		return $response->is_error ? false : $this->json;
+	}	
 }
