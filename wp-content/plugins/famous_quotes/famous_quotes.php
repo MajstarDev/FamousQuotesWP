@@ -9,10 +9,11 @@ Version: 1.0
 
 add_action('admin_init', array('FamousQuoteEvent', 'initPlugin'));
 add_action('admin_menu', array('FamousQuoteEvent', 'addMenuLinks'));
-add_action('admin_post_new_key', array('FamousQuoteEvent', 'generateNewApiKey'));
-add_action('admin_post_add_quote', array('FamousQuoteEvent', 'addQuote'));
-add_action('admin_post_delete_quote', array('FamousQuoteEvent', 'deleteQuote'));
-add_action('wp_footer',	 array('FamousQuoteEvent', 'showRandomQuote'));
+add_action('admin_post_new_key', 	array('FamousQuoteEvent', 'generateNewApiKey'));
+add_action('admin_post_add_quote', 	array('FamousQuoteEvent', 'addQuote'));
+add_action('admin_post_delete_quote', 	array('FamousQuoteEvent', 'deleteQuote'));
+add_action('wp_footer',	 	array('FamousQuoteEvent', 'showRandomQuote'));
+add_action('wp_enqueue_scripts', array('FamousQuoteEvent', 'register_plugin_styles'));
 
 require 'famousQuoteSymfonyApiProxy.php';
 
@@ -116,34 +117,50 @@ class FamousQuoteEvent
 				submit_button('Add Quote');
 				print '</form>';
 
-				print '<table cellpadding="5" cellspacing="0" border="1">
+				print '
+				<div class="wrap">
+					<table class="wp-list-table widefat striped">
+					<thead>
 					<tr>
 						<td>Author</td>
 						<td>Quote</td>
 						<td>&nbsp;</td>
 					</tr>
+					</thead>
+					<tbody>
 				';
 				foreach ($response['data'] as $quote)
 				{
-					print '<tr>
+					print '
+						<tr>
 							<td>' . $quote['name'] . '</td>
-							<td>' . $quote['text'] . '</td>
-							<td>
+							<td class="column-primary">' . $quote['text'] . '</td>
+							<td style="display:flex; justify-content:flex-end;">
 								<form action="admin-post.php" method="post">
 								<input type="hidden" name="action" value="edit_quote">
 								<input type="hidden" name="id" value="' . $quote['id'] . '">
-								<input type="submit" value="Edit">
+								<input type="submit" value="Edit" class="button">
 								</form>
+								&nbsp;
 
 								<form action="admin-post.php" method="post">
 								<input type="hidden" name="action" value="delete_quote">
 								<input type="hidden" name="id" value="' . $quote['id'] . '">
-								<input type="submit" value="Delete">
+								<input type="submit" value="Delete" class="button">
 								</form>
 							</td>
 						</tr>';
 				}
-				print '</table>';
+				print '
+				</tbody>
+				<tfoot>
+					<tr>
+							<td>Author</td>
+							<td>Quote</td>
+							<td>&nbsp;</td>
+						</tr>
+					</tfoot>
+				</table></div>';
 			}
 		}
 
@@ -171,7 +188,18 @@ class FamousQuoteEvent
 
 	public function showRandomQuote()
 	{
-		print  '<p style="color: black; padding-left: 15%;">VOILA ' . rand(0, 100) . '</p>';
+		$options = get_option('fmq_api_settings');
+		$api = new famousQuoteSymfonyApiProxy($options['fmq_api_key']);
+
+		$response = $api->getRandomQuote();
+		if ($response)
+		{
+			print '<div class="fmq-container">
+				<blockquote class="fmq" cite="' . $response['data'][0]['name'] . '">
+					' .  $response['data'][0]['text'] . '
+				<blockquote>
+			</div>';
+		}
 	}
 
 	public function renderOptionsPage( )
@@ -212,6 +240,12 @@ class FamousQuoteEvent
 		$key = $response['key'];
 		update_option('fmq_api_settings', array('fmq_api_key' => $key));
 		wp_redirect(admin_url('/options-general.php?page=fmq-settings-page'));
+	}
+
+	public function register_plugin_styles()
+	{
+		wp_register_style('fmqPlugin', plugins_url('famous_quotes/assets/quotes_public.css'));
+		wp_enqueue_style('fmqPlugin');
 	}
 }
 

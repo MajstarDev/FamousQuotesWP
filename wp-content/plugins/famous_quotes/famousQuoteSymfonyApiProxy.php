@@ -127,6 +127,10 @@ class famousQuoteSymfonyApiProxy
 		return $response->is_error ? false : $this->json;
 	}
 
-}
+	public function getRandomQuote()
+	{
+		$response = $this->send_request('GET', '/random');
+		return $response->is_error ? false : $this->json;
+	}
 
-?>
+}
