@@ -13,6 +13,8 @@ add_action('admin_post_new_key', 	array('FamousQuoteEvent', 'generateNewApiKey')
 add_action('admin_post_add_quote', 	array('FamousQuoteEvent', 'addQuote'));
 add_action('admin_post_edit_quote', 	array('FamousQuoteEvent', 'editQuote'));
 add_action('admin_post_delete_quote', 	array('FamousQuoteEvent', 'deleteQuote'));
+add_action('admin_enqueue_scripts', array('FamousQuoteEvent', 'register_admin_styles'));
+add_action('admin_enqueue_scripts', array('FamousQuoteEvent', 'register_admin_scripts'));
 add_action('wp_footer',	 	array('FamousQuoteEvent', 'showRandomQuote'));
 add_action('wp_enqueue_scripts', array('FamousQuoteEvent', 'register_plugin_styles'));
 
@@ -78,13 +80,12 @@ class FamousQuoteEvent
 		{
 			print 'Something went wrong! (' . $api->error_message . ')';
 		}
-
 	}
 
 	private static function renderQuoteForm($data)
 	{
-		print '<form action="admin-post.php" method="post">
-			<input type="hidden" name="action" value="' . $data['mode'] . '_quote">
+		print '<form action="admin-post.php" method="post" id="quote_form">
+		<input type="hidden" name="action" value="' . $data['mode'] . '_quote">
 			';
 		if ($data['id'])
 		{
@@ -92,14 +93,21 @@ class FamousQuoteEvent
 		}
 
 		print '
-			Author:
-			<input type=text name="quote_author" value="' . htmlspecialchars($data['quote_author']) . '">
-			<br/>
-			
-			Quote:
-			<textarea name="quote_text">' . htmlspecialchars($data['quote_text']) . '</textarea>
+			<table class="form-table">
+				<tr>
+					<td colspan="2" class="fmq-form-error"></td>
+				</tr>
+			<tr>
+					<th><label for="quote_author">Author:</label></th>
+					<td><input type=text name="quote_author" class="fmq" value="' . htmlspecialchars($data['quote_author']) . '"></td>
+				</tr>
+				<tr>
+					<th>Quote:</th>
+					<td><textarea name="quote_text" class="fmq" rows="5" cols="30">' . htmlspecialchars($data['quote_text']) . '</textarea></td>
+				</tr>
+			</table>
 			';
-                submit_button();
+        submit_button();
 		print '</form>';
 		
 	}
@@ -295,6 +303,18 @@ class FamousQuoteEvent
 		wp_redirect(admin_url('/options-general.php?page=fmq-settings-page'));
 	}
 
+	public function register_admin_styles()
+	{
+		wp_register_style('fmqPlugin', plugins_url('famous_quotes/assets/quotes_admin.css'));
+		wp_enqueue_style('fmqPlugin');
+	}
+
+	public function register_admin_scripts($hook)
+	{
+		if ($hook != 'settings_page_add_quote' && $hook != 'settings_page_view_quote')
+			return;
+		wp_enqueue_script('newscript', plugins_url('famous_quotes/assets/quotes_admin.js'), array( 'jquery'));
+	}
 	public function register_plugin_styles()
 	{
 		wp_register_style('fmqPlugin', plugins_url('famous_quotes/assets/quotes_public.css'));

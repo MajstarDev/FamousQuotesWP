@@ -1,0 +1,9 @@
+textarea.fmq, 
+input[type="text"].fmq 
+ {
+	width:500px;
+}
+
+.fmq-form-error {
+	color: red;
+}
