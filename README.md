@@ -3,7 +3,7 @@
 Andy, Chris:
 
 When enabled, this plugin adds two links to the "Settings" menu in WP: "Famous Quotes" & "Famous Quotes settings".
-![screenshot](https://github.com/MajstarDev/FamousQuotesWP/wpmenudemo.png)
+![screenshot](https://raw.githubusercontent.com/MajstarDev/FamousQuotesWP/master/wpmenudemo.png)
 
 The former is a CRUD page to manage quotes, and the latter is a place to enter API key, or generate a new key.
 Plugin talks to Symfony JSON API at http://pavel.bootcamp.architechlabs.com:8000 - see API reference at http://github.com/MajstarDev/FamousQuotesAPI , be sure to check comments at the bottom of README for tradeoffs in Symfony app.
